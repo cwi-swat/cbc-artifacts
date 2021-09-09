@@ -2,11 +2,13 @@
 
 ## TLA+ models
 
-for:
+Containing:
 
 - RV-SER
 - LoCA with CBC/SCBC
 - 2PL/2PC
+
+Please see `Readme.adoc` in the `tla` directory for more specifics.
 
 ## SMT Static CBC
 
