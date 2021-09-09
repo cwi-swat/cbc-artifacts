@@ -1,0 +1,155 @@
+module return_value.Library
+
+//import return_value.Account 
+//import simple_transaction.Reservation
+
+@doc { 	
+	Opening an account needs a valid IBAN and some initial deposit. 
+} 
+event open(initialDeposit: Money, name: String) {
+	preconditions {
+		initialDeposit >= EUR 0.00;
+	}
+	postconditions {
+		new this.balance == initialDeposit;
+		new this.name == name;
+	}  
+} 
+
+event getName() {
+// not yet supported syntax
+  //return {
+  //  this.customerName
+  //}
+}
+
+event changeName(name: String) {
+  postconditions {
+    new this.name == name;
+  }
+}
+
+
+@doc {
+	Withdraw money from the account.
+}
+event withdraw(amount: Money) {
+	preconditions {
+		amount > EUR 0.00; 
+		
+		this.balance - amount >= EUR 0.00;
+	}
+	postconditions {
+		new this.balance == this.balance - amount;
+	}
+	//sync { 
+	//  Reservation[this.accountNumber].check(amount); 
+	//}
+}
+
+@doc {
+	Deposit money on the account. 
+}
+event deposit(amount: Money) {
+	preconditions {
+		amount > EUR 0.00;
+	} 
+	postconditions {
+		new this.balance == this.balance + amount;
+	}
+}
+
+@doc {
+	Block the account for withdrawals and deposits.
+}
+event block() {}
+
+@doc {
+	Unblock the account so that withdrawals and deposits can happen again.
+}
+event unblock() {}
+
+@doc {
+	Close the account.
+}
+
+event close() { 
+	preconditions {
+		this.balance == EUR 0.00;
+	}
+}	
+
+function singleInterest(balance: Money, interest: Percentage): Money =  balance * interest;
+
+event interest[maxInterest: Percentage = 10%](currentInterest: Percentage) {
+  preconditions {
+    currentInterest <= maxInterest; 
+  }
+  postconditions {
+    new this.balance == this.balance + singleInterest(this.balance, currentInterest);
+  }
+}
+
+@doc {
+	The balance should always be positive
+}
+invariant positiveBalance {
+	this.balance >= EUR 0.00;
+}
+
+@doc {
+	Start a new transaction.
+	The transaction can only be booked on the specified date.
+}
+event start(amount: Money, from: IBAN, to: IBAN) {//, bookOn: Date) {
+	preconditions {
+		@doc{From account must exist.}
+		initialized Account[from];
+		@doc{To account must exist.}
+		initialized Account[to];
+		
+		@doc{From and to account should differ}
+		to != from;
+		
+		amount > EUR 0.00;
+		amount.currency == EUR;
+	}
+	postconditions {
+		new this.amount == amount;
+		new this.from == from;
+		new this.to == to;
+		
+		//@doc{The created on date is set to the current date}
+		//new this.createdOn == now;
+		
+		//new this.bookedOn == bookOn;
+	}
+}
+
+@doc{
+	Book the transaction.
+	The transaction can only be booked if today is the set book date
+}
+event book() {
+	preconditions {
+		//this.bookedOn == now.date;	
+	} 
+	sync { 
+		Account[this.from].withdraw(this.amount);
+		Account[this.to].deposit(this.amount);  
+	}
+}
+
+@doc{
+	Fails the transaction.
+	If it is not possible to book the transaction (not enough money in account, past the bookOn date, etc) the transaction can be failed.
+	No money is transfered between the accounts
+}
+event fail() {}
+
+// Agreement
+
+event startA() {}
+event inactivate() {}
+event activate() {}
+event end() {}

@@ -1,0 +1,31 @@
+module return_value.Account
+
+import return_value.Library
+
+@doc {
+	Toy account with customer name
+}
+specification Account {
+	fields {
+		accountNumber: IBAN @key
+		name: String
+		balance: Money	
+	}
+	
+	events { 
+		open[]
+		withdraw[]   
+		deposit[]
+		getName[]
+	} 
+	 
+	invariants {
+		positiveBalance
+	}
+	
+	lifeCycle {
+		initial init -> opened: open
+		
+		opened -> opened: withdraw, deposit, getName
+	}
+}

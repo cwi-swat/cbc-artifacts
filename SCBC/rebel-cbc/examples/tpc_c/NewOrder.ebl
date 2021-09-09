@@ -1,0 +1,25 @@
+module tpc_c.NewOrder
+
+import tpc_c.Library
+
+specification NewOrder {
+  fields {
+    no_O_ID: Integer @key
+    no_D_ID: Integer
+    no_W_ID: Integer  
+  }
+  
+  events {
+    newOrder_NO_create[]
+    orderStatus_NO_read[]
+    delivery_NO_delete[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial init -> created: newOrder_NO_create
+    created -> created: orderStatus_NO_read
+    created -> deleted: delivery_NO_delete
+  }
+}

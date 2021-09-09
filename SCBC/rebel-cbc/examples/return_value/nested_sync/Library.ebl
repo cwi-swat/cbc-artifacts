@@ -1,0 +1,67 @@
+module return_value.nested_sync.Library
+
+import return_value.nested_sync.Agreement
+import return_value.nested_sync.Account
+
+@doc { 	
+	Opening an account needs a valid IBAN and some initial deposit. 
+} 
+event open(initialDeposit: Money, agreementId: Integer) {
+	preconditions {
+		initialDeposit >= EUR 0.00;
+	}
+	postconditions {
+		new this.balance == initialDeposit;
+		new this.agreementId == agreementId;
+	}  
+} 
+
+@doc {
+	Withdraw money from the account.
+}
+event withdraw(amount: Money) {
+	preconditions {
+		amount > EUR 0.00; 
+		
+		this.balance - amount >= EUR 0.00;
+	}
+	postconditions {
+		new this.balance == this.balance - amount;
+	}
+}
+
+@doc {
+	Deposit money on the account. 
+}
+event deposit(amount: Money) {
+	preconditions {
+		amount > EUR 0.00;
+	} 
+	postconditions {
+		new this.balance == this.balance + amount;
+	}
+	sync {
+	  Agreement[this.agreementId].allowDeposit();
+	}
+}
+
+event changeAgreement(agreementId: Integer) {
+  postconditions {
+      new this.agreementId == agreementId;
+  }
+}
+
+@doc {
+	The balance should always be positive
+}
+invariant positiveBalance {
+	this.balance >= EUR 0.00;
+}
+
+// Agreement
+
+event startA() {}
+event inactivate() {}
+event activate() {}
+event end() {}
+event allowDeposit() {}

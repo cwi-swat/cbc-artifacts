@@ -1,0 +1,25 @@
+module tpc_c.District
+
+import tpc_c.Library
+
+specification District {
+  fields {
+    d_ID: Integer @key
+    d_TAX: Integer //  size 9 signed numeric(4,4)
+    d_NEXT_O_ID: Integer
+    d_YTD: Integer
+    // other fields left out for now
+  }
+  
+  events {
+    newOrder_D_useTaxAndOrderId[]
+    payment_D_updateYTD[]
+    stockLevel_D_read[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial exists -> exists: newOrder_D_useTaxAndOrderId, payment_D_updateYTD, stockLevel_D_read
+  }
+}

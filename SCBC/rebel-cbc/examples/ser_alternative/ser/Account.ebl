@@ -1,0 +1,36 @@
+module ser.Account
+
+import ser.Library
+
+@doc {
+	This is a specification of a toy Account.
+	The account can be opened, blocked and closed and can never be overdrawn.
+}
+specification Account {
+	fields {
+		accountNumber: IBAN @key
+		balance: Money
+		prevBalance: Money
+		date: Integer	
+	}
+	
+	events { 
+		open[]
+		withdraw[]   
+		deposit[] 
+		interest[]
+		tick[]
+	} 
+	 
+	invariants {
+		positiveBalance
+	}
+	
+	lifeCycle {
+		initial init -> opened: open
+		
+		opened -> opened: withdraw, deposit, interest, tick
+		
+		final closed
+	}
+}

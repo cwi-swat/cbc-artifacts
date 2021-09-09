@@ -1,0 +1,24 @@
+module tpc_c.Stock
+
+import tpc_c.Library
+
+specification Stock {
+  fields {
+    s_ID: Integer @key
+    s_QUANTITY: Integer
+    s_YTD: Integer
+    s_ORDER_CNT: Integer
+    s_REMOTE_CNT: Integer
+  }
+  
+  events {
+    newOrder_S_update[]
+    stockLevel_S_query[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    created -> created: newOrder_S_update, stockLevel_S_query
+  }
+}

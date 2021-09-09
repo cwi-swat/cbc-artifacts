@@ -1,0 +1,15 @@
+module simple_transaction.TranscationTest
+
+import simple_transaction.Transaction
+import simple_transaction.Account 
+
+state oneBookedTransaction1OpenedAccountAnd1ClosedAccount {
+  now is 26 Sep 2016, 16:42;
+  
+  booked Transaction;
+  
+  opened Account with balance < EUR 0.00;
+  opened Account;
+}
+
+check oneBookedTransaction1OpenedAccountAnd1ClosedAccount reachable in max 5 steps;

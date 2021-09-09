@@ -1,0 +1,28 @@
+module tpc_c.Warehouse
+
+import tpc_c.Library
+
+specification Warehouse {
+  fields {
+    w_ID: Integer @key
+    w_NAME: String // variable text, size 10
+    w_STREET_1: String  // variable text, size 20 
+    w_STREET_2: String  // variable text, size 20 
+    w_CITY: String // variable text, size 20 
+    w_STATE: String // fixed text, size 2 
+    w_ZIP: String // fixed text, size 9
+    w_TAX: Integer //  size 9 signed numeric(4,4)
+    w_YTD: Integer //  signed numeric(12,2)
+  }
+  
+  events {
+    newOrder_useTax[]
+    payment_W_updateYTD[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial exists -> exists: newOrder_useTax, payment_W_updateYTD
+  }
+}

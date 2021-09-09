@@ -1,0 +1,28 @@
+module tpc_c.OrderLine
+
+import tpc_c.Library
+
+specification OrderLine {
+  fields {
+    ol_ID: Integer @key
+    ol_DELIVERY_D: Integer
+    ol_NUMBER: Integer
+    ol_DIST_INFO: String
+    ol_DELIVERY_ID: Integer
+    ol_AMOUNT: Integer
+  }
+  
+  events {
+    newOrder_OL_create[]
+    orderStatus_OL_read[]
+    delivery_OL_update[]
+    stockLevel_OL_read[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial init -> created: newOrder_OL_create
+    created -> created: orderStatus_OL_read, delivery_OL_update, stockLevel_OL_read
+  }
+}

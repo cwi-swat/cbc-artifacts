@@ -10,6 +10,34 @@ for:
 
 ## SMT Static CBC
 
-- add rascal code?
-- input rebel
-- smt output
+In the `SCBC` folder you find multiple Rascal modules. The `rebel-cbc` module contains the SCBC checks using SMT solver Z3.
+
+Tested/Run with:
+
+- Rascal Version: 0.18.2 (https://update.rascal-mpl.org/stable)
+- Z3 version 4.8.8 - 64 bit
+
+### Overview
+
+The Rascal source code can be run using Eclipse with the Rascal plugin.
+
+This folder contains an Eclipse workspace containing all the modules required to run the Analysis.
+
+    rebel-core: Rebel DSL core
+    rebel-eclipse: Rebel DSL tooling to use in Eclipse
+    rebel-cbc: The analysis tool
+    smtlib2: Grammar and tools to output SMTLIB constraints
+
+### Run the CBC analysis
+
+In order to run this, you require Eclipse (https://www.eclipse.org/) and Z3 (https://github.com/Z3Prover/z3/wiki). Z3 can be installed on Mac OSX via homebrew (brew cask install z3).
+
+To reproduce the results from the paper, do the following steps:
+
+    Open all projects in the `SCBC` folder in Eclipse.
+
+    Open the Rascal REPL in Eclipse by right clicking on source file: |project://rebel-cbc/src/cbc/tests/CbcTests.rsc| and selecting Run as > Rascal Application.
+
+    After loading type/copy: `analyse(verySimple, scoRetvalAndPostStateAssert, scoRetvalAndPostStateAssert);`. The tool will return the SCBC table as done in the paper.
+
+

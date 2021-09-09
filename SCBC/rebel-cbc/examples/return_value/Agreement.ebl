@@ -1,0 +1,34 @@
+module return_value.Account
+
+import return_value.Library
+
+@doc {
+  Agreement with customer
+}
+specification Account {
+  fields {
+    id: Integer @key
+  }
+  
+  events { 
+    startA[]
+    inactivate[]
+    activate[]
+    end[]
+  } 
+   
+  invariants {
+    positiveBalance
+  }
+  
+  lifeCycle {
+    initial init -> active: startA
+    
+    active -> inactive: inactivate
+           -> destroyed: end
+    inactive -> active: activate
+             -> destroyed: end
+
+    final destroyed
+  }
+}

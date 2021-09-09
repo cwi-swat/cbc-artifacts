@@ -1,0 +1,619 @@
+module analysis::CommonAnalysisFunctions
+
+import lang::ExtendedSyntax;
+import lang::Builder;
+import lang::Resolver;
+//import lang::Finder;
+
+import lang::smtlib25::AST;
+import lang::smtlib25::Compiler;
+import solver::SolverRunner;
+
+import analysis::SmtResponseTranslator;
+import analysis::LocTranslator;
+
+import IO;
+import Set;
+import String;
+import List;
+import Map;
+import util::Maybe;
+import util::Math;
+import ParseTree;
+import Boolean;
+//import analysis::graphs::Graph;
+
+//alias RebelLit = lang::ExtendedSyntax::Literal;
+
+data StringConstantPool = scp(str (int) toStr, int (str) toInt);
+
+data Context(map[str,str] specLookup = (), map[loc, Type] types = ())
+  = context(str spec, str event)
+  | flattenedEvent(str spec, str event)
+  | eventAsFunction()
+  | function()
+  | emptyCtx()
+  ;
+
+data Step 
+  = step(str entity, str event, list[Variable] transitionParameters)
+  | noStep()
+  ; 
+
+data Variable
+  = var(str name, Type tipe, Expr val) 
+  | constraintedVar(str name, Type tipe, Expr constraint)
+  | uninitialized(str name, Type tipe)
+  ;
+   
+data EntityInstance = instance(str entityType, list[Expr] id, list[Variable] vals);  
+data State 
+  = state(int nr, DateTime now, list[EntityInstance] instances, Step step)
+  ;
+
+list[Command] replaceStringsWithInts(list[Command] commands, StringConstantPool scp) = [replaceStringsWithInts(c, scp) | Command c <- commands];
+
+Command replaceStringsWithInts(Command command, StringConstantPool scp) {
+  return visit(command) {
+    case \string() => \int()
+    case strVal(str s) => intVal(scp.toInt(s))
+  }
+}
+
+tuple[int, map[str,int]] fromStrToInt(str astr, map[str,int] constantPool) = <constantPool[astr], constantPool> when astr in constantPool;
+default tuple[int, map[str, int]] fromStrToInt(str astr, map[str, int] constantPool) {
+  int getNewInt(map[str, int] cp) = 0 when size(cp) == 0;
+  default int getNewInt(map[str, int] cp) = (getOneFrom(onlyInts) | max(it, e) | int e <- onlyInts) + 1 when set[int] onlyInts := cp<1>;
+
+  constantPool[astr] = getNewInt(constantPool);
+  return <constantPool[astr], constantPool>;  
+}
+
+tuple[str, map[str,int]] fromIntToStr(int anint, map[str,int] constantPool) = <inverted[anint], constantPool> when map[int,str] inverted := invertUnique(constantPool), anint in inverted;
+default tuple[str, map[str, int]] fromIntToStr(int anint, map[str, int] constantPool) {
+  int strLength = 10;
+  
+  str randomStrGen(int lengthLimit) {
+    list[str] abc = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+    return ("" | it + abc[arbInt(25) + 1] | int i <- [0..lengthLimit], str l := (i % 2 == 0 ? toUpperCase(abc[arbInt(25) + 1]) : abc[arbInt(25) + 1]));
+  }
+  
+  str getNewStr(map[str, int] cp) =  randomStrGen(strLength) when size(cp) == 0;
+  default str getNewStr(map[str, int] constantPool) {
+    bool inserted = false;
+    str newStr = "";
+    
+    while (!inserted) {
+      newStr = randomStrGen(strLength);
+    
+      if (newStr notin constantPool) {
+        constantPool[newStr] = anint;
+        inserted = true;
+      }
+    }
+    
+    return newStr;
+  }
+  
+  str newStr = getNewStr(constantPool);
+  
+  constantPool[newStr] = anint;
+  return <newStr, constantPool>;
+}
+
+list[str] getUnsatCoreStatements(SolverPID pid, EventDef raisedEvent) {
+  str smtResponse = runSolver(pid, compile(getUnsatCore()), wait = 20);
+  list[loc] unsatCoreLocs = [strToLoc(l) | str l <- parseSmtUnsatCore(smtResponse)];
+  
+  list[str] unsatCoreStats = ["<s>" | /Statement s := raisedEvent, s@\loc in unsatCoreLocs] +
+                             ["<s>" | /SyncStatement s := raisedEvent, s@\loc in unsatCoreLocs];
+
+  return unsatCoreStats;
+} 
+
+State getNextStateModel(SolverPID pid, State current, str nextStateLabel, map[str,str] specLookup, StringConstantPool scp, set[Built] allBuilts) {
+  // TODO: filter out all unchanged, uninitialized fields
+  
+  EntityInstance getNextInstance(EntityInstance ei) {
+    if (isInitializedEntity(pid, ei.entityType, ei.id, nextStateLabel, scp)) {
+      return instance(ei.entityType, ei.id, 
+        [getNewVarValue(pid, ei.entityType, ei.id, v, nextStateLabel, scp) | Variable v <- ei.vals]);
+    } else {
+      return ei; 
+    }  
+  }
+  
+  Step step = getStep(pid, nextStateLabel, scp, allBuilts);
+  
+  return state(current.nr + 1, current.now, [getNextInstance(ei) | EntityInstance ei <- current.instances],
+               step);
+}
+
+str emptyLookup(int label) { throw "No string lookup function defined. Given label: <label>"; } 
+
+Step getStep(SolverPID pid, str smtStateLabel, StringConstantPool scp, set[Built] allBuilts) {
+  Command stepEntityCmd = getValue([functionCall(simple("step_entity"), [var(simple(smtStateLabel))])]);
+  str entity = scp.toStr(toInt(parseSmtResponse(runSolver(pid, compile(stepEntityCmd), wait = 2), scp.toStr)));
+  
+  Command stepEventCmd = getValue([functionCall(simple("step_transition"), [var(simple(smtStateLabel))])]);
+  str event = scp.toStr(toInt(parseSmtResponse(runSolver(pid, compile(stepEventCmd), wait = 2), scp.toStr)));
+  
+  list[Variable] transitionValues = [];
+
+  if (Built b <- allBuilts, "<b.normalizedMod.modDef.fqn>" == entity, EventDef evnt <- b.normalizedMod.spec.events.events, "<evnt.name>" == event) {
+    for (Parameter p <- evnt.transitionParams) {
+      Command transitionVal = getValue([functionCall(simple("eventParam_<entity>_<event>_<p.name>"), [var(simple(smtStateLabel))])]);
+      str formattedRebelExpr = parseSmtResponse(runSolver(pid, compile(transitionVal), wait = 5), scp.toStr);
+      if (isStringType(p.tipe)) {
+        formattedRebelExpr = scp.toStr(toInt(formattedRebelExpr));
+      }
+      
+      Expr val = [lang::ExtendedSyntax::Expr]"<formattedRebelExpr>";
+      transitionValues += var("<p.name>", p.tipe, val);
+    }
+  }
+  
+  return step(entity, event, transitionValues);
+}
+
+bool isInitializedEntity(SolverPID pid, str entityType, list[Expr] id, str smtStateLabel, StringConstantPool scp) {
+  Command isInitializedCmd = getValue([functionCall(simple("spec_<entityType>_initialized"), 
+    [functionCall(simple("spec_<entityType>"), [var(simple(smtStateLabel))] + [translateExpr(i, emptyCtx()) | Expr i <- id])] +
+    [translateExpr(i, emptyCtx()) | Expr i <- id])]);
+  
+  str smtOutput = runSolver(pid, compile(replaceStringsWithInts(isInitializedCmd, scp)), wait = 2);
+  return fromString(parseSmtResponse(smtOutput, emptyLookup));
+}
+
+Variable getNewVarValue(SolverPID pid, str entityType, list[Expr] id, Variable current, str smtStateLabel, StringConstantPool scp) {
+  Command newValCmd = getValue([functionCall(simple("field_<entityType>_<current.name>"), 
+                        [functionCall(simple("spec_<entityType>"), [var(simple(smtStateLabel))] + [translateExpr(i, emptyCtx()) | Expr i <- id])])
+                      ]);
+           
+  str smtOutput = runSolver(pid, compile(replaceStringsWithInts(newValCmd, scp)), wait = 10);
+
+  str formattedRebelExpr = parseSmtResponse(smtOutput, scp.toStr);
+
+  if (isStringType(current.tipe)) {
+    formattedRebelExpr = scp.toStr(toInt(formattedRebelExpr));
+  }
+  
+  Expr newVal = [Expr]"<formattedRebelExpr>";
+  
+  return var(current.name, current.tipe, newVal);
+}
+
+bool isStringType((Type)`String`) = true;
+bool isStringType((Type)`Currency`) = true;
+default bool isStringType(Type _) = false;
+
+set[Built] loadAllSpecs(loc file, set[loc] visited) {
+  set[Built] result = {};
+  
+  Built b = loadSpec(file);
+  if (b.normalizedMod has spec) {
+    result += b;    
+  }
+    
+  for (<_, loc imported> <- b.refs.imports, imported.top notin visited) {
+    set[Built] loaded = loadAllSpecs(imported.top, visited + file);
+    visited += {l.normalizedMod@\loc.top | Built l <- loaded};
+    result += loaded;
+  } 
+  
+  return result;
+}
+
+Built loadSpec(loc file) {
+  if (<_,just(Built b)> := load(file)) {
+    return b;
+  } else throw "Unable to load built file of <file>";
+}
+
+EventDef findEventDef(str eventName, Built b) = evnt when b.normalizedMod has spec, EventDef evnt <- b.normalizedMod.spec.events.events, "<evnt.name>" == eventName;
+EventDef findEventDef(str eventName, Built b) { throw "Event with name \'<eventName>\' not found in specs"; }
+
+list[Command] declareSmtSpecLookup(set[Module] mods, State st) {
+  list[EntityInstance] getInstances(str entityType) = [ei | ei <- st.instances, ei.entityType == entityType];
+   
+  list[Command] smt = [];
+
+  for (Module m <- mods, /normalized(_, _, TypeName name, _, Fields fields, _, _, _, _, _, LifeCycle lc) := m) {
+    // lookup @key fields
+    list[FieldDecl] keys = [f | /FieldDecl f := fields, /(Annotation)`@key` := f.meta];
+
+    smt += declareFunction("spec_<m.modDef.fqn>", [custom("State")] + [translateSort(k.tipe) | k <- keys], custom("<m.modDef.fqn>"));  
+
+    // declare an exist function to check whether keys are part of the predefined model universe
+    smt += defineFunction("spec_<m.modDef.fqn>_exists", [sortedVar("<k.name>", translateSort(k.tipe)) | k <- keys], \bool(),
+      or([and([eq(var(simple("<keys[i].name>")), translateExpr(ei.id[i], emptyCtx())) | int i <- [0..size(keys)]]) | ei <- getInstances("<m.modDef.fqn>")])
+    );
+
+    // define the initialized function
+    // 1. get all the states nr's which represent initialized states
+    set[int] initializedStateNrs = {toInt("<sf.nr>") | /StateFrom sf := lc, /(LifeCycleModifier)`initial` !:= sf};
+    smt += defineFunction("spec_<m.modDef.fqn>_initialized", 
+      [sortedVar("entity", custom("<m.modDef.fqn>"))] + [sortedVar("<k.name>", translateSort(k.tipe)) | k <- keys], 
+      \bool(), 
+      and([
+        functionCall(simple("spec_<m.modDef.fqn>_exists"),[var(simple("<k.name>")) | k <- keys]),
+        or([eq(functionCall(simple("field_<m.modDef.fqn>__state"), [var(simple("entity"))]), lit(intVal(nr))) | int nr <- initializedStateNrs])
+      ]));
+  }
+  
+  return smt;
+}
+
+list[Command] declareNow() = [declareFunction("now", [custom("State")], custom("DateTime"))];
+
+list[Command] declareSmtTypes(set[Module] specs) {
+  // first declare the build in Rebel types
+  list[Command] smt = declareRebelTypes();
+  
+  // Add the state sort as undefined sort
+  smt += declareSort("State");
+  
+  // Add 'specification' types as undefined sorts
+  smt += toList({declareSort("<m.modDef.fqn>") | /Module m := specs, m has spec});
+  
+  return smt; 
+}
+
+Command declareTransitionFunction(lrel[Built, EventDef] events, State state, set[Built] allBuilts, map[str, str] specLookup, map[loc, Type] types) {
+  list[Formula] body = [];
+  
+  for (<Built b, EventDef e> <- events) {
+    body += \and(
+      [functionCall(simple("event_<b.normalizedMod.modDef.fqn>_<e.name>"), [var(simple("current")), var(simple("next"))] + 
+        [functionCall(simple("eventParam_<b.normalizedMod.modDef.fqn>_<e.name>_<p.name>"), [var(simple("next"))]) | Parameter p <- e.transitionParams]
+      )] +
+      [eq(functionCall(simple("step_entity"), [var(simple("next"))]), lit(strVal("<b.normalizedMod.modDef.fqn>"))),
+      eq(functionCall(simple("step_transition"), [var(simple("next"))]), lit(strVal("<e.name>")))] +
+      translateFrameConditionsForUnchangedInstances(e, state, flattenedEvent("<b.normalizedMod.modDef.fqn>", "<e.name>", specLookup = specLookup, types = types))
+      );
+  }
+   
+  return defineFunction("transition", [sortedVar("current", custom("State")), sortedVar("next", custom("State"))], \bool(), \or(body));
+}
+
+list[Command] translateInvariants(set[Built] specs, Context ctx) =
+  [defineFunction("invariant_<b.normalizedMod.modDef.fqn>.<inv.name>", 
+    [sortedVar("state", custom("State"))] + [sortedVar("param__<f.name>", translateSort(f.tipe)) | FieldDecl f <- b.normalizedMod.spec.fields.fields, /(Annotation)`@key` := f.meta],
+    \bool(),
+    \and([translateStat(st, ctx) | Statement st <- inv.stats])) | Built b <- specs, InvariantDef inv <- b.normalizedMod.spec.invariants.defs];  
+
+list[Command] translateFields(set[Module] specs) =
+  [declareFunction("field_<m.modDef.fqn>_<f.name>", [custom("<m.modDef.fqn>")], translateSort(f.tipe)) | Module m <- specs, m has spec, FieldDecl f <- m.spec.fields.fields];
+
+list[Command] translateAllTransitionParameters(set[Module] specs) =
+  ([] | it + translateTransitionParameters("<m.modDef.fqn>", "<evnt.name>", {p | Parameter p <- evnt.transitionParams}) | Module m <- specs, m has spec, EventDef evnt <- m.spec.events.events);
+
+list[Command] translateTransitionParameters(str fqnSpecName, str eventName, set[Parameter] transitionParams) =
+  [declareFunction("eventParam_<fqnSpecName>_<eventName>_<p.name>", [custom("State")], translateSort(p.tipe)) | Parameter p <- transitionParams];  
+
+list[Command] translateEntityFrameFunctions(set[Built] allSpecs) {
+  Formula frameField(Module m, FieldDecl field, list[FieldDecl] keyFields) 
+    = lang::smtlib25::AST::eq(functionCall(simple("field_<m.modDef.fqn>_<field.name>"), [functionCall(simple("spec_<m.modDef.fqn>"), [var(simple("next"))] + [var(simple("_<f.name>")) | FieldDecl f <- keyFields])]),
+            functionCall(simple("field_<m.modDef.fqn>_<field.name>"), [functionCall(simple("spec_<m.modDef.fqn>"), [var(simple("current"))] + [var(simple("_<f.name>")) | FieldDecl f <- keyFields])]));
+  
+  list[Command] result = [];
+  
+  for (Built b <- allSpecs, b.normalizedMod has spec, Module m := b.normalizedMod) {
+    list[FieldDecl] keyFields = [f | f:(FieldDecl)`<VarName _> :<Type _> @key` <- m.spec.fields.fields];
+    result += defineFunction("spec_<m.modDef.fqn>_frame", [sortedVar("current", custom("State")), sortedVar("next", custom("State"))] +
+      [sortedVar("_<f.name>", translateSort(f.tipe)) | f <- keyFields], \bool(), 
+      \and([frameField(m, f, keyFields) | FieldDecl f <- m.spec.fields.fields])); 
+  }
+  
+  return result;
+}
+
+list[Command] translateTransitionParams(str entity, str transitionToFire, list[Variable] params) =
+  [\assert(lang::smtlib25::AST::eq(functionCall(simple("eventParam_<entity>_<transitionToFire>_<p.name>"), [var(simple("next"))]), translateLit(p.val))) | Variable p <- params]; 
+
+list[Command] translateFunctions(list[FunctionDef] functions, Context ctx) =
+  [defineFunction("func_<f.name>", [sortedVar("param_<p.name>", translateSort(p.tipe)) | p <- f.params], translateSort(f.returnType), translateStat(f.statement, ctx)) | f <- functions];
+
+list[Command] translateEventsToFunctions(lrel[Built, EventDef] evnts, Context ctx) {
+  Command translate(Module m, EventDef evnt) =
+    defineFunction("event_<m.modDef.fqn>_<evnt.name>", [sortedVar("current", custom("State")), sortedVar("next", custom("State"))] + 
+      [sortedVar("param_<p.name>", translateSort(p.tipe)) | p <- evnt.transitionParams], \bool(),
+      \and([translateStat(s, ctx) | /Statement s := evnt.pre] +
+           [translateStat(s, ctx) | /Statement s := evnt.post] + 
+           [translateSyncStat(s, ctx) | /SyncStatement s := evnt]));
+  
+  return [translate(b.normalizedMod, e) | <Built b, EventDef e> <- evnts, b.normalizedMod has spec];
+}
+
+list[Formula] translateFrameConditionsForUnchangedInstances(EventDef evnt, State current, Context ctx) {
+  set[Expr] getKeysThatTakePartInTransition(str fqn) = {id | /(Statement)`<TypeName spc>[<Expr id>];` := evnt.syncInstances, ctx.specLookup["<spc>"] == fqn};
+
+  set[EntityInstance] getInstancesOfType(str entityType) = {ei | EntityInstance ei <- current.instances, ei.entityType == entityType};
+
+  Expr getId(EntityInstance ei) = id when [id] := ei.id;
+  default Expr getId(EntityInstance ei) { throw "More then 1 field as id is not supported at this moment"; }
+  
+  list[Formula] result = [];
+  set[str] uniqueEntities = {ei.entityType | EntityInstance ei <- current.instances};
+  
+  for (str fqn <- uniqueEntities) {
+    set[Expr] keys = getKeysThatTakePartInTransition(fqn);
+    set[EntityInstance] instances = getInstancesOfType(fqn);
+    
+    if (keys == {}) {
+      // Entity type does not take part in transitions, all instances should be framed
+      result += [functionCall(simple("spec_<fqn>_frame"), [var(simple("current")), var(simple("next")), translateExpr(getId(i), emptyCtx())]) | EntityInstance i <- instances];
+    } else {
+      // Check if the key is equal to one of the used keys and otherwise frame
+      for (EntityInstance ei <- instances) {
+        result += or([\eq(translateExpr(getId(ei), emptyCtx()), translateExpr(key, ctx)) | Expr key <- keys] +
+                      [functionCall(simple("spec_<fqn>_frame"), [var(simple("current")), var(simple("next")), translateExpr(getId(ei), emptyCtx())])]);
+      }
+    }
+  }
+  
+  return result; 
+}
+
+list[Command] declareStepFunction() = [declareFunction("step_entity", [custom("State")], \string()), declareFunction("step_transition", [custom("State")], \string())]; 
+
+
+Formula translateSyncStat(SyncStatement s, Context ctx) = translateSyncExpr(s.expr, ctx);
+
+Formula translateSyncExpr((SyncExpr)`not <SyncExpr expr>`, Context ctx) = \not(translateSyncExpr(expr, ctx));
+Formula translateSyncExpr((SyncExpr)`<TypeName spc>[<Expr id>].<VarName event>(<{Expr ","}* params>)`, Context ctx) 
+  = functionCall(simple("event_<ctx.specLookup["<spc>"]>_<event>"), [var(simple("current")), var(simple("next"))] + [translateExpr(p, ctx) | p <- params]);
+
+Formula translateStat((Statement)`(<Statement s>)`, Context ctx) = translateStat(s, ctx);
+Formula translateStat((Statement)`<Annotations _> <Expr e>;`, Context ctx) = translateExpr(e, ctx);
+default Formula translateStat(Statement s, Context ctx) { throw "Unable to translate statement \'<s>\' to SMT"; }
+
+Formula translateExpr(e:(Expr)`new <Expr spc>[<Expr id>]`, Context ctx) = functionCall(simple("spec_<ctx.specLookup["<spc>"]>"), [var(simple("next")), translateExpr(id, ctx)])
+  //when bprintln("ctx.specLookup: <ctx.specLookup>")
+  when bprintln(e@\loc)
+;
+Formula translateExpr((Expr)`new <Expr spc>[<Expr id>].<VarName field>`, Context ctx) = functionCall(simple("field_<ctx.specLookup["<spc>"]>_<field>"), [functionCall(simple("spec_<ctx.specLookup["<spc>"]>"), [var(simple("next")), translateExpr(id, ctx)])]);
+
+// hacky
+Formula translateExpr(e:(Expr)`new this.<VarName field>`, Context ctx) = functionCall(simple("<field>"), [translateExpr(lhs, ctx)]) when lhs := (Expr)`post_state`; 
+
+//translateExpr(fqvn, ctx) when bprintln(e), fqvn := [Expr]"post_state.<field>", bprintln(fqvn);
+
+Formula translateExpr((Expr)`<Expr spc>[<Expr id>]`, Context ctx)  = functionCall(simple("spec_<ctx.specLookup["<spc>"]>"), [var(simple("current")), translateExpr(id, ctx)]);
+Formula translateExpr((Expr)`<Expr spc>[<Expr id>].<VarName field>`, Context ctx) = functionCall(simple("field_<ctx.specLookup["<spc>"]>_<field>"), [functionCall(simple("spec_<ctx.specLookup["<spc>"]>"), [var(simple("current")), translateExpr(id, ctx)])]);
+
+Formula translateExpr((Expr)`initialized <Expr spc>[<Expr id>]`, Context ctx) = 
+  functionCall(simple("spec_<ctx.specLookup["<spc>"]>_initialized"), [translateExpr((Expr)`<Expr spc>[<Expr id>]`, ctx), 
+    translateExpr((Expr)`<Expr id>`, ctx)]); // when bprintln(ctx.specLookup); 
+
+Formula translateExpr((Expr)`<Expr lhs>.<VarName field>`, Context ctx) = functionCall(simple("<field>"), [translateExpr(lhs, ctx)]); 
+
+Formula translateExpr((Expr)`(<Expr e>)`, Context ctx) = translateExpr(e, ctx);
+
+Formula translateExpr((Expr)`<Literal l>`, Context ctx) = translateLit(l);
+
+Formula translateExpr((Expr)`<Ref r>`, Context ctx) 
+  = functionCall(simple("eventParam_<spec>_<event>_<r>"), [var(simple("next"))])
+  when flattenedEvent(str spec, str event) := ctx;
+
+Formula translateExpr((Expr)`<Ref r>`, Context ctx) 
+  = var(simple("param_<r>"))
+  when function() := ctx || eventAsFunction() := ctx;
+
+default Formula translateExpr((Expr)`<Ref r>`, Context ctx) { throw "Unsupported translation for reference <r> with context <ctx>"; }
+
+Formula translateExpr((Expr)`<VarName function>(<{Expr ","}* params>)`, Context ctx) = functionCall(simple("func_<function>"), [translateExpr(p, ctx) | Expr p <- params]);
+
+Formula translateFormula(Expr lhs, Expr rhs, (Type)`Money`, (Type)`Money`, Context ctx, Formula (Formula, Formula) createComp) 
+  = createComp(functionCall(simple("amount"), [translateExpr(lhs, ctx)]), functionCall(simple("amount"), [translateExpr(rhs, ctx)])); 
+
+default Formula translateFormula(Expr lhs, Expr rhs, Type _, Type _, Context ctx, Formula (Formula, Formula) createComp) 
+  = createComp(translateExpr(lhs, ctx), translateExpr(rhs, ctx)); 
+
+Formula translateExpr(Expr lhs, Expr rhs, (Type)`Money`, (Type)`Money`, Context ctx, Formula (Formula, Formula) createComp) 
+  = functionCall(simple("consMoney"), [functionCall(simple("currency"), [translateExpr(lhs,ctx)]), 
+      createComp(functionCall(simple("amount"), [translateExpr(lhs, ctx)]), functionCall(simple("amount"), [translateExpr(rhs, ctx)]))]); 
+
+Formula translateExpr(Expr lhs, Expr rhs, (Type)`Money`, (Type)`Integer`, Context ctx, Formula (Formula, Formula) createComp) 
+  = functionCall(simple("consMoney"), [functionCall(simple("currency"), [translateExpr(lhs,ctx)]), 
+      createComp(functionCall(simple("amount"), [translateExpr(lhs, ctx)]), translateExpr(rhs, ctx))]); 
+
+Formula translateExpr(Expr lhs, Expr rhs, (Type)`Money`, (Type)`Percentage`, Context ctx, Formula (Formula, Formula) createComp) 
+  = functionCall(simple("consMoney"), [functionCall(simple("currency"), [translateExpr(lhs,ctx)]), 
+      createComp(functionCall(simple("amount"), [translateExpr(lhs, ctx)]), translateExpr(rhs, ctx))]); 
+
+default Formula translateExpr(Expr lhs, Expr rhs, Type _, Type _, Context ctx, Formula (Formula, Formula) createComp) 
+  = createComp(translateExpr(lhs, ctx), translateExpr(rhs, ctx)); 
+
+Formula translateExpr((Expr)`<Expr lhs> + <Expr rhs>`, Context ctx) 
+  = translateExpr(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return add(l, [r]); });
+
+Formula translateExpr((Expr)`<Expr lhs> - <Expr rhs>`, Context ctx)
+  = translateExpr(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return sub(l, [r]); });
+
+Formula translateExpr((Expr)`<Expr lhs> * <Expr rhs>`, Context ctx)
+  = translateExpr(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return mul(l, [r]); });
+
+Formula translateExpr((Expr)`<Expr lhs> / <Expr rhs>`, Context ctx)
+  = translateExpr(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return div(l, [r]); });
+
+Formula translateExpr((Expr)`<Expr lhs> % <Expr rhs>`, Context ctx)
+  = translateExpr(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return \mod(l, r); });
+
+Formula translateNeg(Expr expr, (Type)`Integer`, Context ctx) = neg(translateExpr(expr, ctx));
+Formula translateNeg(Expr expr, (Type)`Percentage`, Context ctx) = neg(translateExpr(expr, ctx));
+
+Formula translateNeg(Expr expr, (Type)`Money`, Context ctx) 
+  = functionCall(simple("consMoney"), [functionCall(simple("currency"), [translateExpr(expr, ctx)]), 
+      neg(functionCall(simple("amount"), [translateExpr(expr, ctx)]))]);
+
+default Formula translateNeg(Expr expr, Type t, Context ctx) { throw "Negating <t> not (yet) supported"; }
+
+Formula translateExpr((Expr)`- <Expr expr>`, Context ctx) = translateNeg(expr, ctx.types[expr@\loc], ctx);
+
+Formula translateExpr((Expr)`not <Expr expr>`, Context ctx) = not(translateExpr(expr, ctx));
+
+Formula translateExpr((Expr)`<Expr lhs> \< <Expr rhs>`, Context ctx) 
+  = translateFormula(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return lt(l, r); }); // when bprintln(rhs);
+
+Formula translateExpr((Expr)`<Expr lhs> \<= <Expr rhs>`, Context ctx) 
+  = translateFormula(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return lte(l, r); });
+
+Formula translateExpr((Expr)`<Expr lhs> \> <Expr rhs>`, Context ctx) 
+  = translateFormula(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return gt(l, r); });
+
+Formula translateExpr((Expr)`<Expr lhs> \>= <Expr rhs>`, Context ctx)
+  = translateFormula(lhs, rhs, ctx.types[lhs@\loc], ctx.types[rhs@\loc], ctx, Formula (Formula l, Formula r) { return gte(l, r); });
+
+
+// specialized `==` to update state record
+// not used because if more fields are updated it should be folded
+//Formula translateExpr((Expr)`new this.<VarName field> == <Expr rhs>`, Context ctx) = 
+//(= post_state ((_ update-field fieldName) param_this newFieldValue))
+//lang::smtlib25::AST::eq(translateExpr(lhs, ctx), doUpdate)
+  //when lhs := (Expr)`post_state`
+       //, Formula newFieldValue := translateExpr(rhs, ctx)
+       //, Formula doUpdate := updateField(simple("<field>"), simple("param_this"), newFieldValue); // functionCall(update, [, newFieldValue]);
+  
+Formula translateExpr((Expr)`<Expr lhs> == <Expr rhs>`, Context ctx) = lang::smtlib25::AST::eq(translateExpr(lhs, ctx), translateExpr(rhs, ctx));
+Formula translateExpr((Expr)`<Expr lhs> != <Expr rhs>`, Context ctx) = 
+  \not(lang::smtlib25::AST::eq(translateExpr(lhs, ctx), translateExpr(rhs, ctx))); // when bprintln(translateExpr(lhs, ctx)), bprintln(translateExpr(rhs, ctx));
+Formula translateExpr((Expr)`<Expr lhs> && <Expr rhs>`, Context ctx) = and([translateExpr(lhs, ctx), translateExpr(rhs, ctx)]);
+Formula translateExpr((Expr)`<Expr lhs> || <Expr rhs>`, Context ctx) = or([translateExpr(lhs, ctx), translateExpr(rhs, ctx)]);
+
+Formula translateExpr((Expr)`inUni (<TypeName spc>[<Expr id>])`, Context ctx) = functionCall(simple("spec_<ctx.specLookup["<spc>"]>_exists"), [translateExpr(id,ctx)]);
+
+  //| "{" Expr lower ".." Expr upper"}"   
+  //| "(" {MapElement ","}* mapElems ")"
+  //| staticSet: "{" {Expr ","}* setElems "}"
+Formula translateExpr((Expr)`{ <{Expr ","}* setElems> }`, Context ctx) = 
+  translateExpr(e, ctx) when /Expr e := setElems;
+  //| "{" Expr elem "|" Expr loopVar "\<-" Expr set "}"
+  //| "{" Expr init "|" Statement reducer "|" Expr loopVar "\<-" Expr set "}" 
+  //| isMember: Expr lhs "in" Expr rhs
+Formula translateExpr((Expr)`<Expr lhs> in <Expr rhs>`, Context ctx) = 
+// (select rejectReasons "Currency not in Euros")
+  select(translateExpr(rhs, ctx), translateExpr(lhs, ctx));
+  //> right ( Expr cond "?" Expr whenTrue ":" Expr whenFalse
+Formula translateExpr((Expr)`<Expr cond> ? <Expr whenTru>  : <Expr whenFalse>`, Context ctx) = 
+  ite(translateExpr(cond, ctx), translateExpr(whenTru, ctx), translateExpr(whenFalse, ctx));
+
+  //  | Expr cond "-\>" Expr implication
+Formula translateExpr((Expr)`<Expr cond> -\> <Expr implication>`, Context ctx) = 
+  implies(translateExpr(cond, ctx), translateExpr(implication, ctx));
+  //| "finalized" Expr
+  //| Expr lhs "instate" Expr rhs
+  
+default Formula translateExpr(Expr exp, Context ctx) { throw "Translation for expr \'<exp>\' not yet implemented"; }
+  
+Sort translateSort((Type)`Currency`) = custom("Currency");
+Sort translateSort((Type)`Date`) = custom("Date");
+Sort translateSort((Type)`Time`) = custom("Time");
+Sort translateSort((Type)`DateTime`) = custom("DateTime");
+Sort translateSort((Type)`IBAN`) = custom("IBAN");
+Sort translateSort((Type)`Money`) = custom("Money");
+Sort translateSort((Type)`Integer`) = \int();
+Sort translateSort((Type)`Frequency`) = custom("Frequency");
+Sort translateSort((Type)`Percentage`) = custom("Percentage");
+Sort translateSort((Type)`String`) = \string();
+Sort translateSort((Type)`Boolean`) = \bool();
+Sort translateSort((Type)`Term`) = \int();
+
+// TODO actual type?
+Sort translateSort((Type)`InterestTariff`) = \int();
+
+// todo real sets or arrays
+Sort translateSort((Type)`set[String]`) = combined([custom("Set"), \string()]);
+
+// (define-sort Map (T1 T2) (Array T1 T2))
+Sort translateSort((Type)`map[<Type key>: <Type val>]`) = combined([custom("Map"), translateSort(key), translateSort(val)]);
+
+// TODO real translation
+Sort translateSort((Type)`<Type lhs> -\> <Type rhs>`) = combined([custom("Map"), translateSort(lhs), translateSort(rhs)]);
+
+default Sort translateSort(Type t) { throw "Sort conversion for <t> not yet implemented <t@\loc>"; }
+
+//Formula translateLit(value v) = translateLit(l) when RebelLit l := v;
+
+Formula translateLit((Literal)`<Int i>`) = translateLit(i);
+Formula translateLit((Literal)`<Percentage p>`) = translateLit(p);
+
+Formula translateLit((Literal)`<IBAN i>`) = translateLit(i);
+
+Formula translateLit((Literal)`<Money m>`) = translateLit(m);//functionCall(simple("amount"), [translateLit(m)]);
+
+Formula translateLit((Literal)`<DateTime tm>`) = translateLit(tm);
+Formula translateLit((Literal)`<Date d>`) = translateLit(d);
+Formula translateLit((Literal)`<Time t>`) = translateLit(t);
+Formula translateLit((Literal)`<Currency c>`) = translateLit(c);
+Formula translateLit((Literal)`<String s>`) = translateLit(s);
+Formula translateLit((Literal)`<Term term>`) = translateLit(term);
+
+Formula translateLit(Money m) = lit(adt("consMoney", [lit(strVal("<m.cur>")), translateLit(m.amount)]));
+Formula translateLit(MoneyAmount ma) = lit(intVal(toInt("<ma.whole>") * 100 + toInt("<ma.decimals>")));
+
+Formula translateLit((DateTime)`now`) = functionCall(simple("now"), [var(simple("param_this"))]);
+Formula translateLit(DateTime dt) = lit(adt("consDateTime", [translateLit(dt.date), translateLit(dt.time)]));
+
+Formula translateLit(Date d) = lit(adt("consDate", [translateLit(d.day), translateLit(d.month),translateLit(year)])) when d has year, /Int year := d.year;
+Formula translateLit(Date d) = lit(adt("consDate", [translateLit(d.day), translateLit(d.month), translateLit(0)])) when !(d has year); 
+Formula translateLit(Time t) = lit(adt("consTime", [translateLit(toInt("<t.hour>")), translateLit(toInt("<t.minutes>")), translateLit(toInt("<sec>"))])) when t has seconds, /Int sec := t.seconds; 
+Formula translateLit(Time t) = lit(adt("consTime", [translateLit(toInt("<t.hour>")), translateLit(toInt("<t.minutes>")), translateLit(0)])) when !t has seconds; 
+Formula translateLit(IBAN i) = lit(adt("consIBAN", [translateLit("<i.countryCode>"), translateLit(toInt("<i.checksum>")), translateLit("<i.accountNumber>")])); 
+
+Formula translateLit(String s) = lit(strVal("<s.content>"));
+
+Formula translateLit(Currency c) = lit(strVal("<c>"));
+
+Formula translateLit((Month)`Jan`) = lit(intVal(1)); 
+Formula translateLit((Month)`Feb`) = lit(intVal(2));
+Formula translateLit((Month)`Mar`) = lit(intVal(3));
+Formula translateLit((Month)`Apr`) = lit(intVal(4));
+Formula translateLit((Month)`May`) = lit(intVal(5));
+Formula translateLit((Month)`Jun`) = lit(intVal(6)); 
+Formula translateLit((Month)`Jul`) = lit(intVal(7));
+Formula translateLit((Month)`Aug`) = lit(intVal(8));
+Formula translateLit((Month)`Sep`) = lit(intVal(9));
+Formula translateLit((Month)`Oct`) = lit(intVal(10));
+Formula translateLit((Month)`Nov`) = lit(intVal(11));
+Formula translateLit((Month)`Dec`) = lit(intVal(12));
+
+// TODO make sense
+Formula translateLit(Term t) = lit(intVal(toInt("<t.factor>"))); 
+
+Formula translateLit(Int i) = lit(intVal(toInt("<i>")));
+Formula translateLit(int i) = lit(intVal(i));
+
+Formula translateLit(Percentage p) = lit(intVal(toInt("<p.per>")));
+
+Formula translateLit(str s) = lit(strVal(s));
+
+Formula translateLit((Literal)`True`) = translateLit(true);
+Formula translateLit((Literal)`False`) = translateLit(false);
+Formula translateLit(bool b) = lit(boolVal(b));
+
+default Formula translateLit(value l) { /* iprintln(l); */ throw "translateLit(..) not implemented for <l>"; }
+
+list[Command] declareRebelTypes() {   
+  set[tuple[str,Sort]] rebelTypes = {<"Currency", \string()>,
+                                     <"Frequency", \int()>,
+                                     <"Percentage", \int()>,
+                                     <"Period", \int()>,
+                                     <"Term", \int()>
+                                    };
+                             
+  return [defineSort(name, [], sort) | <str name, Sort sort> <- rebelTypes] +
+         [declareDataTypes([], [dataTypeDef("IBAN", [combinedCons("consIBAN", [sortedVar("countryCode", string()), sortedVar("checksum",\int()), sortedVar("accountNumber", string())])])]),
+          declareDataTypes([], [dataTypeDef("Money", [combinedCons("consMoney", [sortedVar("currency", custom("Currency")), sortedVar("amount", \int())])])]),
+          declareDataTypes([], [dataTypeDef("Date", [
+            combinedCons("consDate", [sortedVar("date", \int()), sortedVar("month", \int()), sortedVar("year", \int())]), 
+            cons("undefDate")])]),
+          declareDataTypes([], [dataTypeDef("Time", [
+            combinedCons("consTime", [sortedVar("hour", \int()), sortedVar("minutes", \int()), sortedVar("seconds", \int())]), 
+            cons("undefTime")])]),
+          //declareDataTypes([], [dataTypeDef("DateTime", [combinedCons("consDateTime", [sortedVar("date", custom("Date")), sortedVar("time", custom("Time"))]), cons("undefDateTime")])]),
+          //defineSort("Set", ["T"], combined([custom("Array"), \string(), \bool()]))         
+          //(define-sort Map (T1 T2) (Array T1 T2))
+          defineSort("Map", ["T1", "T2"], combined([custom("Array"), custom("T1"), custom("T2")]))         
+          ];                                  
+}

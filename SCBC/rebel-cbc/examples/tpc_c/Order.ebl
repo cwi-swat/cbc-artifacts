@@ -1,0 +1,24 @@
+module tpc_c.Order
+
+import tpc_c.Library
+
+specification Order {
+  fields {
+    o_ID: Integer @key
+    o_CARRIER_ID: Integer
+    o_ALL_LOCAL: Integer
+  }
+  
+  events {
+    newOrder_O_create[]
+    orderStatus_O_read[]
+    delivery_O_update[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial init -> created: newOrder_O_create
+    created -> created: orderStatus_O_read, delivery_O_update
+  }
+}

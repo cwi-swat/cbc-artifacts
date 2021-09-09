@@ -1,0 +1,31 @@
+module return_value.nested_sync.Agreement
+
+import return_value.nested_sync.Library
+
+@doc {
+  Agreement with customer
+}
+specification Agreement {
+  fields {
+    id: Integer @key
+  }
+  
+  events { 
+    startA[]
+    inactivate[]
+    activate[]
+    allowDeposit[]
+  }
+   
+  invariants {
+    positiveBalance
+  }
+   
+  lifeCycle {
+    initial init -> active: startA
+    
+    active -> active: allowDeposit
+           -> inactive: inactivate
+    inactive -> active: activate
+  }
+}

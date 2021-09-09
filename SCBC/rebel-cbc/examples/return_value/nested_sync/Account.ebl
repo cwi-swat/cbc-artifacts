@@ -1,0 +1,31 @@
+module return_value.nested_sync.Account
+
+import return_value.nested_sync.Library
+
+@doc {
+	Toy account with customer name
+}
+specification Account {
+	fields {
+		accountNumber: IBAN @key
+		agreementId: Integer
+		balance: Money	
+	}
+	
+	events { 
+		open[]
+		withdraw[]   
+		deposit[]
+		changeAgreement[]
+	}
+	
+	invariants {
+		positiveBalance
+	}
+	
+	lifeCycle {
+		initial init -> opened: open
+		
+		opened -> opened: withdraw, deposit, changeAgreement
+	}
+}

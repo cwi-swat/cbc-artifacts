@@ -1,0 +1,21 @@
+module rivercrossing.Wolf
+
+import rivercrossing.Lib
+
+specification Wolf {
+  fields {
+    id: Integer @key
+  }
+  
+  events {
+    startWolf[]
+    wolfCrossToFarSide[]
+    wolfCrossToNearSide[]
+  }
+  
+  lifeCycle {
+    initial init -> near: startWolf
+    near -> far: wolfCrossToFarSide 
+    far -> near: wolfCrossToNearSide
+  }  
+}

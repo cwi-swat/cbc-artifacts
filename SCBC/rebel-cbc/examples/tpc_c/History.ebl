@@ -1,0 +1,23 @@
+module tpc_c.History
+
+import tpc_c.Library
+
+specification History {
+  fields {
+    h_C_ID: Integer @key
+    h_C_D_ID: Integer
+    h_C_W_ID: Integer
+    h_D_ID: Integer
+    h_W_ID: Integer
+  }
+  
+  events {
+    payment_H_write[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial init -> created: payment_H_write
+  }
+}

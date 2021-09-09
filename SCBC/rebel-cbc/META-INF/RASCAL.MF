@@ -1,0 +1,7 @@
+Manifest-Version: 0.0.1
+Source: src
+Main-Module: Plugin
+Main-Function: main
+Courses: courses
+Require-Libraries: |lib://rebel-core|, |lib://smtlib2|
+Project-Name: rebel-sco

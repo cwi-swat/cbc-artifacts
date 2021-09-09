@@ -1,0 +1,21 @@
+module rivercrossing.Farmer
+
+import rivercrossing.Lib
+ 
+specification Farmer {
+  fields {
+    id: Integer @key
+  }  
+  
+  events {
+    startFarmer[] 
+    farmerCrossToFarSide[]
+    farmerCrossToNearSide[] 
+  } 
+   
+  lifeCycle {
+    initial init -> near: startFarmer
+    near -> far: farmerCrossToFarSide
+    far -> near: farmerCrossToNearSide
+  }
+}

@@ -1,0 +1,221 @@
+module tpc_c.Library
+
+//import tpc_c.NewOrderTransaction 
+
+event newOrder(w_id: Int, w_tax: Double, 
+               d_id: Int, d_tax: Double, d_next_o_id: Int,
+               c_id: Int, c_discount: Double,
+               // o_id: Int,
+               order_lines: set[(Int, Int, Int)] // set of OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY
+               ) {
+  postconditions {
+    this.total_amount == sum(ol_amount) * (1 - c_discount) * ( 1 + w_tax + d_tax);   
+    
+    // in foreach order line
+    this.ol_amount == order_line_OL_QUANTITY * order_line_i_price;
+    
+    // for each order_line in order_lines
+    //forall order_line : order_lines |  
+    //  Item[order_line_OL_I_ID].exists(order_line_i_price); // abort when not-found + get price
+    //forall order_line : order_lines |  
+     // Stock[order_line_S_I_ID].decrease(order_line_OL_QUANTITY); // decrease logic goes in Stock
+  }
+  sync {
+    Warehouse[w_id].checkTax(w_tax); // W_TAX random within [0.0000 .. 0.2000]
+    District[d_id].checkTaxAndNextId(d_tax, d_next_o_id); // D_TAX random within [0.0000 .. 0.2000]
+    Customer[c_id].checkDiscount(c_discount); // C_DISCOUNT random within [0.0000 .. 0.5000]
+    NewOrder[d_next_o_id].newOrder_NO_create(d_next_o_id, d_id, w_id); // create new order entry
+    Order[d_next_o_id].newOrder_O_create(d_next_o_id, d_id, w_id);
+  }
+}
+
+
+event newOrder_W_useTax(tax: Integer) {
+  preconditions {
+   this.w_TAX == tax;
+  }
+}
+
+event payment_W_updateYTD(h_AMOUNT: Integer) {
+  preconditions {
+    h_AMOUNT >= 1 && h_AMOUNT <= 5000;
+  }
+  postconditions {
+    new this.w_YTD == this.w_YTD + h_AMOUNT;
+  }
+}
+
+
+//
+// District events
+//
+
+// First "query" order id by querying state of this machine.
+// Then in the sync/distributed transaction actually using it, sync with `useTaxAndOrderId`
+event newOrder_D_useTaxAndOrderId(tax: Integer, orderId: Integer) {
+  preconditions {
+  // check if not changed in mean time.
+  // Will vote abort when different
+  // will continue is fine
+    this.d_NEXT_O_ID == orderId;
+    this.d_TAX == tax;
+  }
+  postconditions {
+    new this.d_NEXT_O_ID == this.d_NEXT_O_ID + 1;
+  }
+}
+
+event payment_D_updateYTD(h_AMOUNT: Integer) {
+  preconditions {
+    h_AMOUNT >= 1 && h_AMOUNT <= 5000;
+  }
+  postconditions {
+    new this.d_YTD == this.d_YTD + h_AMOUNT;
+  }
+}
+
+event stockLevel_D_read() {
+  // read some values, no changes
+}
+
+//
+// Customer Events
+// 
+
+event newOrder_C_read(discount: Integer) {
+  // read some values, no changes
+  preconditions {
+    this.c_DISCOUNT == discount;
+  }
+}
+
+event payment_C_update(h_AMOUNT: Integer, h_AMOUNT_STRING: String) {
+  preconditions {
+    h_AMOUNT >= 1 && h_AMOUNT <= 5000;
+  }
+  postconditions {
+    new this.c_BALANCE == this.c_BALANCE - h_AMOUNT;
+    new this.c_YTD_PAYMENT == this.c_YTD_PAYMENT + h_AMOUNT;
+    new this.c_PAYMENT_CNT == this.c_PAYMENT_CNT + 1;
+    this.c_CREDIT == "BC" -> (new this.c_DATA == h_AMOUNT_STRING + this.c_DATA);
+  }
+}
+
+event orderStatus_C_read() {
+ // read items
+}
+
+event delivery_C_update(sum_ol_amount: Integer) {
+  postconditions {
+    new this.c_BALANCE == this.c_BALANCE + sum_ol_amount;
+    new this.c_DELIVERY_CNT == this.c_DELIVERY_CNT + 1;
+  }
+} 
+
+//
+// History events
+//
+
+event payment_H_write(c_D_ID: Integer, c_W_ID: Integer, d_ID: Integer, w_ID: Integer) {
+  postconditions {
+    new this.h_C_D_ID == c_D_ID;
+    new this.h_C_W_ID == c_W_ID;
+    new this.h_D_ID == d_ID;
+    new this.h_W_ID == w_ID;
+  }
+}
+
+//
+// Order events
+//
+event order_O_create(o_ALL_LOCAL: Integer) {
+  postconditions {
+    new this.o_CARRIER_ID == 0; // set to null
+    new this.o_ALL_LOCAL == o_ALL_LOCAL;
+  }
+}
+
+event orderStatus_O_read() {
+ // read some values
+}
+ 
+event delivery_O_update(o_CARRIER_ID: Integer) {
+  postconditions {
+    new this.o_CARRIER_ID == o_CARRIER_ID;
+  }
+}
+
+// NewOrder events
+event newOrder_NO_create(no_D_ID: Integer, no_W_ID: Integer) {
+  postconditions {
+    new this.no_D_ID == no_D_ID;
+    new this.no_W_ID == no_W_ID;
+  }
+}
+
+event orderStatus_NO_read() { // read values 
+}
+
+event delivery_NO_delete() { }
+
+// OrderLine events
+
+event newOrder_OL_create(ol_NUMBER: Integer, ol_DIST_INFO: String) {
+  postconditions {
+    new this.ol_DELIVERY_D == 0; // null
+    new this.ol_NUMBER == ol_NUMBER;
+    new this.ol_DIST_INFO == ol_DIST_INFO;
+  }
+}
+
+event orderStatus_OL_read() {
+ // read some values
+}
+ 
+event delivery_OL_update(o_CARRIER_ID: Integer, amount: Integer) {
+  preconditions {
+    this.ol_AMOUNT == amount;
+  }
+  postconditions {
+    new this.ol_DELIVERY_ID == now;
+  }
+}
+
+event stockLevel_OL_read() {
+ // read some values
+}
+
+// Stock events
+
+event newOrder_S_update(ol_quantity: Integer, remote: Boolean) {
+  postconditions {
+    new this.s_QUANTITY == this.s_QUANTITY + ((this.s_QUANTITY + 10 > ol_quantity) 
+      ? -ol_quantity 
+      : (- ol_quantity + 91));
+    new this.s_YTD == this.s_YTD + ol_quantity;
+    new this.s_ORDER_CNT == this.s_ORDER_CNT + 1;
+    new this.s_REMOTE_CNT == this.s_REMOTE_CNT + (remote ? 1 : 0);
+  }
+}
+
+// select all Stock where S_QUANTITY < threshold
+event stockLevel_S_query() {
+
+}
+
+// Item events
+ 
+// abort sync if not created for newOrder_S_read
+event i_create(id: Integer, price: Integer) {
+  postconditions {
+    new this.i_ID == id;
+    new this.i_PRICE == price;
+  }
+}
+
+event newOrder_S_read(i_price: Integer) {
+  preconditions {
+    this.i_PRICE == i_price;
+  }
+// read values
+}

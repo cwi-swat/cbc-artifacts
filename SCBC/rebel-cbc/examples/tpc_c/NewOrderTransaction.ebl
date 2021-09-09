@@ -1,0 +1,14 @@
+module tpc_c.NewOrderTransaction
+
+import tpc_c.Library
+
+specification NewOrderTransaction {
+  events {
+    newOrder[]
+  }
+  
+  lifeCycle {
+    initial new -> done: newOrder
+    final done 
+  }
+}

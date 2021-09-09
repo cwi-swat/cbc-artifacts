@@ -1,0 +1,22 @@
+module tpc_c.Item
+
+import tpc_c.Library
+
+specification Item {
+  fields {
+    i_ID: Integer @key
+    i_PRICE: Integer
+  }
+  
+  events {
+    newOrder_S_read[]
+    i_create[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+  initial not_created -> created: i_create
+  created -> created: newOrder_S_read
+  }
+}

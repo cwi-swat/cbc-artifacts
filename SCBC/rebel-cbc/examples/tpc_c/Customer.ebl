@@ -1,0 +1,29 @@
+module tpc_c.Customer
+
+import tpc_c.Library
+
+specification Customer {
+  fields {
+    c_ID: Integer @key
+    c_BALANCE: Integer
+    c_YTD_PAYMENT: Integer
+    c_PAYMENT_CNT: Integer
+    c_DISCOUNT: Integer
+    c_CREDIT: String
+    c_DATA: String
+    c_DELIVERY_CNT: Integer
+  }
+  
+  events {
+    newOrder_C_read[]
+    payment_C_update[]
+    orderStatus_C_read[]
+    delivery_C_update[]
+  }
+  
+  invariants {}
+  
+  lifeCycle {
+    initial exists -> exists: newOrder_C_read, payment_C_update, orderStatus_C_read, delivery_C_update
+  }
+}
