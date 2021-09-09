@@ -1,0 +1,15 @@
+# Artifacts accompanying paper: Contract-Based Return-Value Commutativity: Safely exploiting contract-based commutativity for faster serializable transactions
+
+## TLA+ models
+
+for:
+
+- RV-SER
+- LoCA with CBC/SCBC
+- 2PL/2PC
+
+## SMT Static CBC
+
+- add rascal code?
+- input rebel
+- smt output
