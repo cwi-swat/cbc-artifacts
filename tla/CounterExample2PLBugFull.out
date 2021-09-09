@@ -1,0 +1,458 @@
+tim@APM3LC02ZR774MD6T ~/w/t/m/L1 (master) [SIGINT]> time tlacli check --invariant Serializable --constant transactions "{t1,t2,t3}" --constant resources "{A,B}" --cfg-out test.cfg -- ClientCentric2PLBug.tla
+
+TLC2 Version 2.15 of Day Month 20?? (rev: d5b5a7f)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 64 and seed -2687747126284099790 with 16 workers on 16 cores with 8192MB heap and 64MB offheap memory [pid: 14693] (Mac OS X 10.15.7 x86_64, AdoptOpenJDK 15 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/ClientCentric2PLBug.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Naturals.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/TLC.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Sequences.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/FiniteSets.tla
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/Util.tla
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/L1ClientCentricIsolation.tla
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/L1SemanticIsolationAccount.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Integers.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Util
+Semantic processing of module Integers
+Semantic processing of module L1SemanticIsolationAccount
+Semantic processing of module L1ClientCentricIsolation
+Semantic processing of module ClientCentric2PLBug
+Starting... (2021-06-11 15:45:07)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2021-06-11 15:45:07.
+Progress(14) at 2021-06-11 15:45:10: 795,462 states generated (795,462 s/min), 232,942 distinct states found (232,942 ds/min), 119,476 states left on queue.
+Progress(19) at 2021-06-11 15:46:10: 15,842,740 states generated (15,047,278 s/min), 4,082,938 distinct states found (3,849,996 ds/min), 1,734,660 states left on queue.
+Progress(19) at 2021-06-11 15:47:10: 24,384,404 states generated (8,541,664 s/min), 6,317,710 distinct states found (2,234,772 ds/min), 2,652,796 states left on queue.
+Progress(20) at 2021-06-11 15:48:10: 34,040,271 states generated (9,655,867 s/min), 8,810,250 distinct states found (2,492,540 ds/min), 3,633,050 states left on queue.
+Progress(20) at 2021-06-11 15:49:10: 41,268,724 states generated (7,228,453 s/min), 10,701,136 distinct states found (1,890,886 ds/min), 4,390,100 states left on queue.
+Error: Invariant Serializable is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ aborted = (A :> {} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = ( t1 :> "INIT" @@
+  t2 :> "INIT" @@
+  t3 :> "INIT" @@
+  A :> "TR_INIT" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = {}
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {} @@ B :> {})
+
+State 2: <INIT line 131, col 15 to line 135, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = ( t1 :> "WAIT" @@
+  t2 :> "INIT" @@
+  t3 :> "INIT" @@
+  A :> "TR_INIT" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = {[id |-> t1, type |-> "VoteRequest"]}
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {} @@ B :> {})
+
+State 3: <INIT line 131, col 15 to line 135, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = ( t1 :> "WAIT" @@
+  t2 :> "INIT" @@
+  t3 :> "WAIT" @@
+  A :> "TR_INIT" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = {[id |-> t1, type |-> "VoteRequest"], [id |-> t3, type |-> "VoteRequest"]}
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {} @@ B :> {})
+
+State 4: <INIT line 131, col 15 to line 135, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = ( t1 :> "WAIT" @@
+  t2 :> "WAIT" @@
+  t3 :> "WAIT" @@
+  A :> "TR_INIT" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {} @@ B :> {})
+
+State 5: <WAIT line 137, col 15 to line 147, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "WAIT" @@
+  t3 :> "WAIT" @@
+  A :> "TR_INIT" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {} @@ B :> {})
+
+State 6: <TR_INIT line 161, col 18 to line 178, col 72 of module ClientCentric2PLBug>
+/\ aborted = (A :> {} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "WAIT" @@
+  t3 :> "WAIT" @@
+  A :> "READY" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {t2} @@ B :> {})
+
+State 7: <READY line 186, col 16 to line 200, col 53 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 5 @@ B :> 5)
+/\ pc = (t1 :> "ABORT" @@ t2 :> "WAIT" @@ t3 :> "WAIT" @@ A :> "STEP" @@ B :> "TR_INIT")
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {t2} @@ B :> {})
+
+State 8: <STEP line 180, col 15 to line 184, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 5)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "WAIT" @@
+  t3 :> "WAIT" @@
+  A :> "TR_INIT" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {t2} @@ B :> {})
+
+State 9: <TR_INIT line 161, col 18 to line 178, col 72 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 5)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "WAIT" @@
+  t3 :> "WAIT" @@
+  A :> "READY" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {t2, t3} @@ B :> {})
+
+State 10: <TR_INIT line 161, col 18 to line 178, col 72 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 5)
+/\ pc = (t1 :> "ABORT" @@ t2 :> "WAIT" @@ t3 :> "WAIT" @@ A :> "READY" @@ B :> "READY")
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {t2, t3} @@ B :> {t2})
+
+State 11: <WAIT line 137, col 15 to line 147, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 5)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "WAIT" @@
+  A :> "READY" @@
+  B :> "READY" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = (t1 :> <<>> @@ t2 :> <<>> @@ t3 :> <<>>)
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {})
+/\ voted = (A :> {t2, t3} @@ B :> {t2})
+
+State 12: <READY line 186, col 16 to line 200, col 53 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 5)
+/\ pc = (t1 :> "ABORT" @@ t2 :> "COMMIT" @@ t3 :> "WAIT" @@ A :> "READY" @@ B :> "STEP")
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {t2})
+/\ voted = (A :> {t2, t3} @@ B :> {t2})
+
+State 13: <STEP line 180, col 15 to line 184, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "WAIT" @@
+  A :> "READY" @@
+  B :> "TR_INIT" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A] }
+/\ committed = (A :> {} @@ B :> {t2})
+/\ voted = (A :> {t2, t3} @@ B :> {t2})
+
+State 14: <TR_INIT line 161, col 18 to line 178, col 72 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "WAIT" @@
+  A :> "READY" @@
+  B :> "READY" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {} @@ B :> {t2})
+/\ voted = (A :> {t2, t3} @@ B :> {t2, t3})
+
+State 15: <WAIT line 137, col 15 to line 147, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "COMMIT" @@
+  A :> "READY" @@
+  B :> "READY" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "GlobalCommit"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {} @@ B :> {t2})
+/\ voted = (A :> {t2, t3} @@ B :> {t2, t3})
+
+State 16: <READY line 186, col 16 to line 200, col 53 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 4 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "COMMIT" @@
+  A :> "STEP" @@
+  B :> "READY" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<[op |-> [id |-> t3, type |-> "Query"], key |-> A, retVal |-> 0]>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "GlobalCommit"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {t3} @@ B :> {t2})
+/\ voted = (A :> {t2, t3} @@ B :> {t2, t3})
+
+State 17: <STEP line 180, col 15 to line 184, col 38 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 3 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "COMMIT" @@
+  A :> "TR_INIT" @@
+  B :> "READY" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<[op |-> [id |-> t3, type |-> "Query"], key |-> A, retVal |-> 0]>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "GlobalCommit"],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {t3} @@ B :> {t2})
+/\ voted = (A :> {t2, t3} @@ B :> {t2, t3})
+
+State 18: <TR_INIT line 161, col 18 to line 178, col 72 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 3 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "COMMIT" @@
+  A :> "READY" @@
+  B :> "READY" )
+/\ state = (A :> 0 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :> <<[op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0]>> @@
+  t3 :> <<[op |-> [id |-> t3, type |-> "Query"], key |-> A, retVal |-> 0]>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "GlobalCommit"],
+  [id |-> t1, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {t3} @@ B :> {t2})
+/\ voted = (A :> {t1, t2, t3} @@ B :> {t2, t3})
+
+State 19: <READY line 186, col 16 to line 200, col 53 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 3 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "COMMIT" @@
+  A :> "STEP" @@
+  B :> "READY" )
+/\ state = (A :> 1 @@ B :> 0)
+/\ operations = ( t1 :> <<>> @@
+  t2 :>
+      << [op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0],
+         [ op |-> [id |-> t2, type |-> "Deposit", amount |-> 1],
+           key |-> A,
+           retVal |-> TRUE ] >> @@
+  t3 :> <<[op |-> [id |-> t3, type |-> "Query"], key |-> A, retVal |-> 0]>> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "GlobalCommit"],
+  [id |-> t1, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {t2, t3} @@ B :> {t2})
+/\ voted = (A :> {t1, t2, t3} @@ B :> {t2, t3})
+
+State 20: <READY line 186, col 16 to line 200, col 53 of module ClientCentric2PLBug>
+/\ aborted = (A :> {t1} @@ B :> {})
+/\ maxTxs = (A :> 3 @@ B :> 4)
+/\ pc = ( t1 :> "ABORT" @@
+  t2 :> "COMMIT" @@
+  t3 :> "COMMIT" @@
+  A :> "STEP" @@
+  B :> "STEP" )
+/\ state = (A :> 1 @@ B :> 1)
+/\ operations = ( t1 :> <<>> @@
+  t2 :>
+      << [op |-> [id |-> t2, type |-> "Query"], key |-> B, retVal |-> 0],
+         [ op |-> [id |-> t2, type |-> "Deposit", amount |-> 1],
+           key |-> A,
+           retVal |-> TRUE ] >> @@
+  t3 :>
+      << [op |-> [id |-> t3, type |-> "Query"], key |-> A, retVal |-> 0],
+         [ op |-> [id |-> t3, type |-> "Deposit", amount |-> 1],
+           key |-> B,
+           retVal |-> TRUE ] >> )
+/\ msgs = { [id |-> t1, type |-> "VoteRequest"],
+  [id |-> t1, type |-> "GlobalAbort"],
+  [id |-> t2, type |-> "VoteRequest"],
+  [id |-> t2, type |-> "GlobalCommit"],
+  [id |-> t3, type |-> "VoteRequest"],
+  [id |-> t3, type |-> "GlobalCommit"],
+  [id |-> t1, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> A],
+  [id |-> t2, type |-> "VoteCommit", rm |-> B],
+  [id |-> t3, type |-> "VoteCommit", rm |-> A],
+  [id |-> t3, type |-> "VoteCommit", rm |-> B] }
+/\ committed = (A :> {t2, t3} @@ B :> {t2, t3})
+/\ voted = (A :> {t1, t2, t3} @@ B :> {t2, t3})
+
+45900280 states generated, 11839428 distinct states found, 4807002 states left on queue.
+The depth of the complete state graph search is 21.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 24 and the 95th percentile is 7).
+Finished in 04min 37s at (2021-06-11 15:49:44)
+
+
+________________________________________________________
+Executed in  278.30 secs   fish           external
+   usr time   61.07 mins  134.00 micros   61.07 mins
+   sys time    0.70 mins  775.00 micros    0.70 mins
+
+tim@APM3LC02ZR774MD6T ~/w/t/m/L1 (master) [12]>

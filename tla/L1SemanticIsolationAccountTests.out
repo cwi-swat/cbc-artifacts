@@ -1,0 +1,157 @@
+@!@!@STARTMSG 2262:0 @!@!@
+TLC2 Version 2.15 of Day Month 20?? (rev: eb3ff99)
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2187:0 @!@!@
+Running breadth-first search Model-Checking with fp 37 and seed 3718709472747664171 with 15 workers on 16 cores with 10923MB heap and 64MB offheap memory [pid: 45171] (Mac OS X 11.5 x86_64, AdoptOpenJDK 16.0.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+@!@!@ENDMSG 2187 @!@!@
+@!@!@STARTMSG 2220:0 @!@!@
+Starting SANY...
+@!@!@ENDMSG 2220 @!@!@
+Parsing file /Users/tim/workspace/cbc-artifacts/tla/L1SemanticIsolationAccountTests.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Sequences.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/FiniteSets.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/TLC.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Integers.tla
+Parsing file /Users/tim/workspace/cbc-artifacts/tla/Util.tla
+Parsing file /Users/tim/workspace/cbc-artifacts/tla/L1ClientCentricIsolation.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Naturals.tla
+Parsing file /Users/tim/workspace/cbc-artifacts/tla/L1SemanticIsolationAccount.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Integers
+Semantic processing of module Util
+Semantic processing of module L1SemanticIsolationAccount
+Semantic processing of module L1ClientCentricIsolation
+Semantic processing of module L1SemanticIsolationAccountTests
+@!@!@STARTMSG 2219:0 @!@!@
+SANY finished.
+@!@!@ENDMSG 2219 @!@!@
+@!@!@STARTMSG 2185:0 @!@!@
+Starting... (2021-09-09 11:24:13)
+@!@!@ENDMSG 2185 @!@!@
+"L1 SER Example"
+<< "Serializable Executions:",
+   { "[A |-> 100, B |-> 100, C |-> 100, T |-> 0] --t2--> [A |-> 100, B |-> 60, C |-> 140, T |-> 40] --t1--> [A |-> 50, B |-> 60, C |-> 190, T |-> 90] --q--> ",
+     "[A |-> 100, B |-> 100, C |-> 100, T |-> 0] --t1--> [A |-> 50, B |-> 100, C |-> 150, T |-> 50] --t2--> [A |-> 50, B |-> 60, C |-> 190, T |-> 90] --q--> " } >>  TRUE
+"NON SER Example"
+<< "Executions not Serializable:",
+   { "[A |-> 100, B |-> 100] --q--> [A |-> 100, B |-> 100] --t2--> [A |-> 300, B |-> 300] --t1--> ",
+     "[A |-> 100, B |-> 100] --q--> [A |-> 100, B |-> 100] --t1--> [A |-> 50, B |-> 150] --t2--> ",
+     "[A |-> 100, B |-> 100] --t2--> [A |-> 300, B |-> 300] --q--> [A |-> 300, B |-> 300] --t1--> ",
+     "[A |-> 100, B |-> 100] --t2--> [A |-> 300, B |-> 300] --t1--> [A |-> 250, B |-> 350] --q--> ",
+     "[A |-> 100, B |-> 100] --t1--> [A |-> 50, B |-> 150] --q--> [A |-> 50, B |-> 150] --t2--> ",
+     "[A |-> 100, B |-> 100] --t1--> [A |-> 50, B |-> 150] --t2--> [A |-> 150, B |-> 450] --q--> " } >>  FALSE
+"NON SER 2PC Example"
+{ << [ op |-> [amount |-> 2, type |-> "Withdraw"],
+       key |-> "B",
+       retVal |-> TRUE ] >>,
+  << [ op |-> [amount |-> 0, type |-> "Deposit", id |-> "t1"],
+       key |-> "A",
+       retVal |-> TRUE ],
+     [ op |-> [amount |-> 1, type |-> "Deposit"],
+       key |-> "B",
+       retVal |-> TRUE ] >>,
+  << [ op |-> [amount |-> 0, type |-> "Deposit", id |-> "t2"],
+       key |-> "A",
+       retVal |-> TRUE ],
+     [ op |-> [amount |-> 1, type |-> "Deposit"],
+       key |-> "B",
+       retVal |-> TRUE ] >> }
+<< "Serializable Executions:",
+   { "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 1] --t2--> [A |-> 0, B |-> 2] --t3--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 1] --t1--> [A |-> 0, B |-> 2] --t3--> " } >>  TRUE
+"CBC paper example 1"
+<< "Serializable Executions:",
+   { "[A |-> 0, B |-> 100] --t1--> [A |-> 10, B |-> 90] --t2--> [A |-> 30, B |-> 70] --t3--> ",
+     "[A |-> 0, B |-> 100] --t2--> [A |-> 20, B |-> 80] --t1--> [A |-> 30, B |-> 70] --t3--> " } >>  TRUE
+"CBC paper example 2, B |-> 0"
+<< "Executions not Serializable:",
+   { "[A |-> 0, B |-> 0] --t1--> [A |-> 10, B |-> 0] --t2--> [A |-> 30, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 10, B |-> 0] --t3--> [A |-> 10, B |-> 30] --t2--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 20, B |-> 0] --t1--> [A |-> 30, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 20, B |-> 0] --t3--> [A |-> 20, B |-> 30] --t1--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 0, B |-> 30] --t1--> [A |-> 10, B |-> 20] --t2--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 0, B |-> 30] --t2--> [A |-> 20, B |-> 10] --t1--> " } >>  FALSE
+<< "Executions not Serializable:",
+   { "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 1, B |-> 0] --t1--> " } >>  FALSE
+<< "Serializable Executions:",
+   { "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t2--> [A |-> 1, B |-> 1] --t3--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> [A |-> 1, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> [A |-> 2, B |-> 2] --t1--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 1, B |-> 1] --t1--> [A |-> 1, B |-> 1] --t3--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 1, B |-> 1] --t3--> [A |-> 2, B |-> 2] --t1--> " } >>  TRUE
+<< "Executions not Serializable:",
+   { "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> [A |-> 0, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 1] --t3--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 0, B |-> 1] --t1--> [A |-> 0, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 0, B |-> 1] --t2--> [A |-> 0, B |-> 2] --t1--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 1] --t1--> [A |-> 0, B |-> 1] --t3--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 1] --t3--> [A |-> 0, B |-> 2] --t1--> " } >>  FALSE
+<< "Executions not Serializable:",
+   { "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --q--> [A |-> 1, B |-> 1] --t1--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> [A |-> 2, B |-> 2] --q--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --q--> ",
+     "[A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> ",
+     "[A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> [A |-> 1, B |-> 1] --t1--> ",
+     "[A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> [A |-> 2, B |-> 2] --t2--> ",
+     "[A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> [A |-> 1, B |-> 1] --q--> [A |-> 1, B |-> 1] --t1--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> [A |-> 1, B |-> 1] --t1--> [A |-> 2, B |-> 2] --q--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --q--> [A |-> 1, B |-> 1] --t2--> [A |-> 1, B |-> 1] --t1--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --q--> [A |-> 1, B |-> 1] --t1--> [A |-> 2, B |-> 2] --t2--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> [A |-> 2, B |-> 2] --t2--> [A |-> 2, B |-> 2] --q--> ",
+     "[A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t1--> [A |-> 2, B |-> 2] --q--> [A |-> 2, B |-> 2] --t2--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --q--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t2--> [A |-> 0, B |-> 0] --t3--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --q--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --t2--> [A |-> 1, B |-> 1] --q--> ",
+     "[A |-> 0, B |-> 0] --t1--> [A |-> 0, B |-> 0] --t3--> [A |-> 1, B |-> 1] --q--> [A |-> 1, B |-> 1] --t2--> " } >>  FALSE
+<< "Executions not Serializable:",
+   { "[A |-> 0, B |-> 0] --t3--> [A |-> 0, B |-> 1] --t2--> ",
+     "[A |-> 0, B |-> 0] --t2--> [A |-> 1, B |-> 0] --t3--> " } >>  FALSE
+@!@!@STARTMSG 2189:0 @!@!@
+Computing initial states...
+@!@!@ENDMSG 2189 @!@!@
+@!@!@STARTMSG 2190:0 @!@!@
+Finished computing initial states: 0 distinct states generated at 2021-09-09 11:24:13.
+@!@!@ENDMSG 2190 @!@!@
+@!@!@STARTMSG 2193:0 @!@!@
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 0.0
+@!@!@ENDMSG 2193 @!@!@
+@!@!@STARTMSG 2201:0 @!@!@
+The coverage statistics at 2021-09-09 11:24:13
+@!@!@ENDMSG 2201 @!@!@
+@!@!@STARTMSG 2773:0 @!@!@
+<Init line 262, col 1 to line 262, col 4 of module L1SemanticIsolationAccountTests>: 0:0
+@!@!@ENDMSG 2773 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<Next line 263, col 1 to line 263, col 4 of module L1SemanticIsolationAccountTests>: 0:0
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2202:0 @!@!@
+End of statistics.
+@!@!@ENDMSG 2202 @!@!@
+@!@!@STARTMSG 2200:0 @!@!@
+Progress(1) at 2021-09-09 11:24:13: 0 states generated (0 s/min), 0 distinct states found (0 ds/min), 0 states left on queue.
+@!@!@ENDMSG 2200 @!@!@
+@!@!@STARTMSG 2199:0 @!@!@
+0 states generated, 0 distinct states found, 0 states left on queue.
+@!@!@ENDMSG 2199 @!@!@
+@!@!@STARTMSG 2194:0 @!@!@
+The depth of the complete state graph search is 1.
+@!@!@ENDMSG 2194 @!@!@
+@!@!@STARTMSG 2186:0 @!@!@
+Finished in 1074ms at (2021-09-09 11:24:13)
+@!@!@ENDMSG 2186 @!@!@

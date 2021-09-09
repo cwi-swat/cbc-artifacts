@@ -1,0 +1,52 @@
+@!@!@STARTMSG 2262:0 @!@!@
+TLC2 Version 2.15 of Day Month 20?? (rev: eb3ff99)
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2187:0 @!@!@
+Running breadth-first search Model-Checking with fp 31 and seed 4333747094935835289 with 15 workers on 16 cores with 7282MB heap and 64MB offheap memory [pid: 10890] (Mac OS X 10.15.7 x86_64, AdoptOpenJDK 15 x86_64, MSBDiskFPSet, DiskStateQueue).
+@!@!@ENDMSG 2187 @!@!@
+@!@!@STARTMSG 2220:0 @!@!@
+Starting SANY...
+@!@!@ENDMSG 2220 @!@!@
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/L1SemanticIsolation.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Sequences.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/FiniteSets.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/TLC.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Integers.tla
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/Util.tla
+Parsing file /private/var/folders/vm/x_h649_962s15k1z6zs4ffw40000gq/T/Naturals.tla
+Parsing file /Users/tim/workspace/tla+/multi-level/L1/L1ClientCentricIsolation.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Integers
+Semantic processing of module Util
+Semantic processing of module L1ClientCentricIsolation
+Semantic processing of module L1SemanticIsolation
+Semantic errors:
+
+*** Errors: 2
+
+line 91, col 46 to line 91, col 46 of module L1SemanticIsolation
+
+Unknown operator: `b'.
+
+
+line 91, col 70 to line 91, col 70 of module L1SemanticIsolation
+
+Unknown operator: `b'.
+
+
+
+@!@!@STARTMSG 2219:0 @!@!@
+SANY finished.
+@!@!@ENDMSG 2219 @!@!@
+@!@!@STARTMSG 2185:0 @!@!@
+Starting... (2021-01-18 13:25:30)
+@!@!@ENDMSG 2185 @!@!@
+@!@!@STARTMSG 3002:1 @!@!@
+Parsing or semantic analysis failed.
+@!@!@ENDMSG 3002 @!@!@
+@!@!@STARTMSG 2186:0 @!@!@
+Finished in 388ms at (2021-01-18 13:25:30)
+@!@!@ENDMSG 2186 @!@!@

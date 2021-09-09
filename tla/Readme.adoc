@@ -1,0 +1,64 @@
+= Overview
+
+== Files/Modules
+
+=== `L1SemanticIsolationAccount`
+Base file with semantics of (Rebel) specification.
+Contains `Pre`, `RetVal` and `Eff`.
+
+=== `L1ClientCentricIsolation`
+Main definitions file, with return value serializability (RV-SER) definitions.
+
+=== `L1SemanticIsolationAccountTests`
+Manual test cases with explicit schedules
+
+=== `ClientCentric2PL`
+Formalization of 2PL and 2PC using above. Checks return value serializability every step of algorithm
+
+=== `ClientCentric2PLBug`
+Seeded bug.
+Bug found, output in `CounterExample2PLBugFull.out`. Non-SER :D
+
+=== `AbstractLoCA`
+Formalization of LoCA using above. Checks return value serializability every step of algorithm
+
+=== `AbstractLoCABug`
+Seeded bug.
+Bug found, output in `AbstractLoCABug_*.out`. Non-SER :D
+
+=== `L1SemanticIsolationAccountTrackT`
+`L1SemanticIsolationAccountTrackT` is a different version of `L1SemanticIsolationAccount` which also tracks a list of previous transfers. This shows that non-exposed internal values, can resurface in later queries. CBC detects this as conflicting.
+
+== Usage / Configuration
+
+Most configuration files can be run by tweaking parameters: `transactions` and `resources` for different sizes. Run time grows exponentially with increased numbers.
+
+In the 2PC/2PL LoCA modules the configuration for `CbcConfig` can be set to different value for the different conflict relations:
+
+- dynamic -- CBC
+- static -- SCBC
+- ie -- runtime IE
+- static-then-dynamic -- first try SCBC, if conflicting, try CBC
+
+The `Serializable` property checks Return-Value Serializability (RV-SER).
+
+=== Run locally
+
+Either use vscode with tla plugin or the TLA+ workbench.
+
+=== Run on server
+
+- `git clone git@github.com:pmer/tla-bin.git` (make sure you have ssh key added to account on github)
+- `cd tla-bin`
+- `./download_or_update_tla.sh`
+- `./install.sh /export/scratch1/home/soethout` (make sure dir `bin` exists)
+
+Optional: install linux-brew and byobu
+
+meteor2 specifics:
+- `set -U fish_user_paths ~.linuxbrew/bin/ $fish_user_paths`
+
+
+- `git clone git@github.com:TimSoethout/cbc-artifacts.git`
+- `cd tla`
+- `env JAVA_OPTS=-Xmx16G tlc -workers 24 -modelcheck AbstractLoCA_MC.tla`

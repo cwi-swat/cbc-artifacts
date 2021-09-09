@@ -1,4 +1,4 @@
-
+dot.dump
 # Created by https://www.gitignore.io/api/tla+,macos,eclipse
 # Edit at https://www.gitignore.io/?templates=tla+,macos,eclipse
 
@@ -121,7 +121,7 @@ states/
 
 # Tim TLA
 *.dvi
-*.out
+; *.out
 
 # LaTex output
 *.toolbox/*aux
